@@ -1,0 +1,6 @@
+{
+  "name": "PartyStar",
+  "description": "Party Room and Family Room with games like Lucky 77, Fruity Party, Original 777, Rocket Launch, and Teen Patti, live chat with emoji float, soulmate ring, UPI wallet recharge, and clean report system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

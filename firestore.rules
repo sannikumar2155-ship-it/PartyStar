@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. User Profile Validation Helper
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 50 &&
+             (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 200)) &&
+             data.coins is int && data.coins >= 0 &&
+             data.diamonds is int && data.diamonds >= 0 &&
+             (!('vipLevel' in data) || (data.vipLevel is int && data.vipLevel >= 1)) &&
+             (!('hasSoulmate' in data) || data.hasSoulmate is bool) &&
+             (!('soulmatePartner' in data) || (data.soulmatePartner is string && data.soulmatePartner.size() <= 50)) &&
+             (!('soulmateTier' in data) || (data.soulmateTier is string && data.soulmateTier.size() <= 30)) &&
+             (!('soulmateIntimacy' in data) || (data.soulmateIntimacy is int && data.soulmateIntimacy >= 0)) &&
+             (!('familyName' in data) || (data.familyName is string && data.familyName.size() <= 50));
+    }
+
+    // 2. Party Room Validation Helper
+    function isValidPartyRoom(data) {
+      return data.roomId is string && data.roomId.size() > 0 && data.roomId.size() <= 64 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.hostId is string && data.hostId.size() <= 128 &&
+             data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 50 &&
+             (!('hostAvatar' in data) || (data.hostAvatar is string && data.hostAvatar.size() <= 20)) &&
+             (!('tag' in data) || (data.tag is string && data.tag.size() <= 30)) &&
+             (!('announcement' in data) || (data.announcement is string && data.announcement.size() <= 200)) &&
+             (!('popularity' in data) || (data.popularity is int && data.popularity >= 0)) &&
+             (!('isFamilyRoom' in data) || data.isFamilyRoom is bool);
+    }
+
+    // 3. Room Message Validation Helper
+    function isValidRoomMessage(data) {
+      return data.messageId is string && data.messageId.size() <= 128 &&
+             data.roomId is string && data.roomId.size() <= 64 &&
+             data.senderId is string && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50 &&
+             (!('senderAvatar' in data) || (data.senderAvatar is string && data.senderAvatar.size() <= 20)) &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 500 &&
+             (!('isSystem' in data) || data.isSystem is bool) &&
+             (!('isGift' in data) || data.isGift is bool) &&
+             (!('giftEmoji' in data) || (data.giftEmoji is string && data.giftEmoji.size() <= 20));
+    }
+
+    // 4. Clean Report Validation Helper
+    function isValidCleanReport(data) {
+      return data.reportId is string && data.reportId.size() <= 64 &&
+             data.reporterId is string && data.reporterId.size() <= 128 &&
+             data.targetType is string && data.targetType.size() <= 30 &&
+             data.targetId is string && data.targetId.size() <= 100 &&
+             data.reason is string && data.reason.size() <= 100 &&
+             (!('details' in data) || (data.details is string && data.details.size() <= 500)) &&
+             data.status is string && data.status.size() <= 30;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       (!('createdAt' in incoming()) || incoming().createdAt == existing().createdAt) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Party Rooms Collection
+    match /rooms/{roomId} {
+      allow get, list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().roomId == roomId &&
+                       incoming().hostId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidPartyRoom(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().roomId == existing().roomId &&
+                       incoming().hostId == existing().hostId &&
+                       (!('createdAt' in incoming()) || incoming().createdAt == existing().createdAt) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidPartyRoom(incoming());
+
+      allow delete: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       existing().hostId == request.auth.uid;
+
+      // Room Messages Subcollection
+      match /messages/{messageId} {
+        allow get, list: if isSignedIn();
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(messageId) &&
+                         incoming().roomId == roomId &&
+                         incoming().senderId == request.auth.uid &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidRoomMessage(incoming());
+
+        allow update, delete: if false;
+      }
+    }
+
+    // Clean Reports Collection
+    match /reports/{reportId} {
+      allow get: if isSignedIn() && existing().reporterId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.reporterId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(reportId) &&
+                       incoming().reporterId == request.auth.uid &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidCleanReport(incoming());
+
+      allow update, delete: if false;
+    }
+  }
+}

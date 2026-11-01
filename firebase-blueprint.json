@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with balance, VIP, and soulmate info",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner auth UID" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "avatar": { "type": "string", "description": "Avatar emoji" },
+        "coins": { "type": "integer", "description": "Coins balance" },
+        "diamonds": { "type": "integer", "description": "Diamonds count" },
+        "vipLevel": { "type": "integer", "description": "VIP tier" },
+        "hasSoulmate": { "type": "boolean", "description": "Has bound soulmate ring" },
+        "soulmatePartner": { "type": "string", "description": "Soulmate username" },
+        "soulmateTier": { "type": "string", "description": "Soulmate ring tier" },
+        "soulmateIntimacy": { "type": "integer", "description": "Intimacy score" },
+        "familyName": { "type": "string", "description": "Family clan name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
+      },
+      "required": ["userId", "displayName", "coins", "diamonds", "createdAt"]
+    },
+    "PartyRoom": {
+      "title": "PartyRoom",
+      "description": "Live party room with host and voice status",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string", "description": "Unique room ID" },
+        "title": { "type": "string", "description": "Room title" },
+        "hostId": { "type": "string", "description": "Host user UID" },
+        "hostName": { "type": "string", "description": "Host nickname" },
+        "hostAvatar": { "type": "string", "description": "Host avatar" },
+        "tag": { "type": "string", "description": "Room category tag" },
+        "announcement": { "type": "string", "description": "Host announcement notice" },
+        "popularity": { "type": "integer", "description": "Live room heat/popularity" },
+        "isFamilyRoom": { "type": "boolean", "description": "Whether room is restricted to family" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
+      },
+      "required": ["roomId", "title", "hostId", "hostName", "createdAt"]
+    },
+    "RoomMessage": {
+      "title": "RoomMessage",
+      "description": "Real-time chat and gift messages in a party room",
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "description": "Unique message ID" },
+        "roomId": { "type": "string", "description": "Parent room ID" },
+        "senderId": { "type": "string", "description": "Sender auth UID" },
+        "senderName": { "type": "string", "description": "Sender display name" },
+        "senderAvatar": { "type": "string", "description": "Sender avatar" },
+        "text": { "type": "string", "description": "Message content" },
+        "isSystem": { "type": "boolean", "description": "System broadcast flag" },
+        "isGift": { "type": "boolean", "description": "Gift announcement flag" },
+        "giftEmoji": { "type": "string", "description": "Gift emoji if gift" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server creation timestamp" }
+      },
+      "required": ["messageId", "roomId", "senderId", "senderName", "text", "createdAt"]
+    },
+    "CleanReport": {
+      "title": "CleanReport",
+      "description": "User-submitted moderation report",
+      "type": "object",
+      "properties": {
+        "reportId": { "type": "string", "description": "Unique report ticket ID" },
+        "reporterId": { "type": "string", "description": "Reporter auth UID" },
+        "targetType": { "type": "string", "description": "User or Room target" },
+        "targetId": { "type": "string", "description": "Target ID or username" },
+        "reason": { "type": "string", "description": "Violation category" },
+        "details": { "type": "string", "description": "Detailed explanation" },
+        "status": { "type": "string", "description": "Ticket status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server creation timestamp" }
+      },
+      "required": ["reportId", "reporterId", "targetType", "targetId", "reason", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles partitioned by auth UID"
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/PartyRoom" },
+      "description": "Public party rooms for voice parties and games"
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RoomMessage" },
+      "description": "Live real-time chat messages for each room"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/CleanReport" },
+      "description": "Community moderation and clean reports"
+    }
+  }
+}
