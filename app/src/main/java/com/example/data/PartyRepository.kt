@@ -35,7 +35,7 @@ class PartyRepository {
         )
     )
 
-    private val _currentUser = MutableStateFlow<UserProfile?>(defaultUser)
+    private val _currentUser = MutableStateFlow<UserProfile?>(null)
     val currentUser: StateFlow<UserProfile?> = _currentUser.asStateFlow()
 
     private val _rooms = MutableStateFlow<List<PartyRoomData>>(getInitialRooms())
@@ -85,7 +85,7 @@ class PartyRepository {
             avatar = listOf("😎", "🥳", "🔥", "👑", "🌟", "🦁").random(),
             loginMethod = method,
             phone = if (method == LoginMethod.PHONE) identifier else null,
-            email = if (method == LoginMethod.GMAIL) identifier else null,
+            email = if (method == LoginMethod.GMAIL || method == LoginMethod.EMAIL) identifier else null,
             coins = 50000L,
             diamonds = 1000L,
             vipLevel = 1,
